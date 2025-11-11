@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Color Picker</title>
+<style>
+:root {
+  --border-color: #242424;
+  --radius: 8px;
+  --accent-color: #51b5ea;
+  --menu-bg: #ffffff;
+  --menu-fg: #136ba0;
+  --sans-serif: "Source Sans Pro", sans-serif;
+}
+body {
+  margin: 0;
+  font-family: var(--sans-serif);
+  background: #000;
+  color: white;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+  padding: 3rem;
+}
+.color-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  width: 340px;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  gap: 1rem;
+  overflow: hidden;
+  transition: border-radius 0.3s, background 0.3s;
+}
+
+/* Direction control */
+.color-card.ltr { direction: ltr; }
+.color-card.rtl { direction: rtl; }
+
+/* Color area */
+.color-area {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  background-blend-mode: multiply;
+  cursor: crosshair;
+  transition: border-radius 0.3s;
+}
+.color-card.ltr .color-area {
+  background: linear-gradient(to right, white, hsl(200,100%,50%)),
+              linear-gradient(to top, black, transparent);
+}
+.color-card.rtl .color-area {
+  background: linear-gradient(to right, white, hsl(260,100%,50%)),
+              linear-gradient(to top, black, transparent);
+  transform: scaleX(-1);
+}
+
+/* Indicator circle */
+.active-indicator {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Hue slider */
+.hue-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red);
+  cursor: pointer;
+}
+.color-card.rtl .hue-slider {
+  transform: scaleX(-1);
+  direction: rtl;
+}
+.hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  border: 1px solid #000;
+  cursor: pointer;
+}
+.hue-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  border: 1px solid #000;
+  cursor: pointer;
+}
+
+/* Top flex row */
+.flex-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.color-card.rtl .flex-row {
+  flex-direction: row-reverse;
+}
+.value {
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+/* Menu button */
+.menu-btn {
+  font-weight: bold;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: white;
+  color: black;
+  padding: 0 16px;
+  height: 28px;
+  z-index: 11;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.menu-btn.active {
+  background: black;
+  color: white;
+}
+
+/* Dropdown container */
+.dropdown {
+  position: absolute;
+  bottom: calc(55px + 2px);
+  right: 32px;
+  width: 280px;
+  background: var(--menu-bg);
+  color: var(--menu-fg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 30px rgba(42,100,145,0.08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(32px) translateY(-2px);
+  transition: 0.3s;
+  padding: calc(1rem - 1px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  border-radius: var(--radius);
+}
+.dropdown.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(0) translateY(0);
+}
+.color-card.rtl .dropdown {
+  direction: rtl;
+  left: 32px;
+  right: auto;
+  transform: translateX(-32px) translateY(-2px);
+}
+
+/* Labels */
+.dropdown label {
+  display: block;
+  font-family: var(--sans-serif);
+  margin-bottom: 0.15rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  font-size: 1rem;
+  text-align: left;
+}
+.color-card.rtl .dropdown label {
+  text-align: right;
+}
+
+/* Select elements */
+#format-select-ltr,
+#format-select-rtl {
+  width: 100%;
+  height: 30px;
+  border-radius: var(--radius);
+  padding: 0 2rem 0 0.5rem;
+  background-color: var(--menu-fg);
+  color: var(--menu-bg);
+  border: 1px solid var(--menu-bg);
+  font-family: var(--sans-serif);
+  font-size: 1rem;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23e7f5ff" height="24" width="24"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  background-position: right 9px center;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  direction: ltr;
+  text-align: left;
+  cursor: pointer;
+}
+.color-card.rtl #format-select-rtl {
+  direction: rtl;
+  text-align: right;
+  background-position: left 9px center;
+  padding: 0 0.5rem 0 2rem;
+}
+#radius-select-ltr,
+#radius-select-rtl {
+  width: 50%;
+  height: 30px;
+  border-radius: var(--radius);
+  padding: 0 2rem 0 0.5rem;
+  background-color: var(--menu-fg);
+  color: var(--menu-bg);
+  border: 1px solid var(--menu-bg);
+  font-family: var(--sans-serif);
+  font-size: 1rem;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23e7f5ff" height="24" width="24"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  background-position: right 9px center;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  direction: ltr;
+  text-align: left;
+  cursor: pointer;
+}
+.color-card.rtl #radius-select-rtl {
+  direction: rtl;
+  text-align: right;
+  background-position: left 9px center;
+  padding: 0 0.5rem 0 2rem;
+}
+.dropdown option {
+  padding: 0.25rem;
+  background: var(--menu-bg);
+  color: var(--menu-fg);
+}
+.dropdown select:focus {
+  outline: 2px solid var(--accent-color);
+  box-shadow: 0 0 4px 2px var(--accent-color);
+}
+
+/* Bottom section */
+.bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.right-aligned {
+  margin-left: auto;
+}
+.color-card.rtl .bottom {
+  flex-direction: row-reverse;
+}
+.square {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: #00A7FA;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: border-radius 0.3s;
+}
+.color-card.rtl .square {
+  background: #6C00FA;
+}
+.labels {
+  display: flex;
+  flex-direction: column;
+}
+.label-name {
+  color: #aaa;
+  font-size: 0.875rem;
+}
+.label-value {
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+</head>
+<body>
+
+<!-- Credit -->
+<!-- The existence of this pen wouldn't've been possible without the following -->
+<!-- https://21st.dev/community/components/uplusion23/color-picker/color-picker-with-swatches-and-onchange -->
+<!-- https://www.scrollxui.dev/docs/components/toggle-vault -->
+<!-- https://codepen.io/sfrisk/pen/NPWELrw -->
+<!-- https://codepen.io/web-dot-dev/pen/gbOKyRZ -->
+<!-- https://www.perplexity.ai/ -->
+
+<div
+  class="color-card ltr"
+  id="card-ltr"
+  data-default-hue="200"
+  data-default-sat="97"
+  data-default-bright="94"
+>
+  <div class="color-area"><div class="active-indicator"></div></div>
+  <input type="range" class="hue-slider" min="0" max="360" />
+  <div class="flex-row">
+    <code class="value">#00A7FA</code>
+    <button class="menu-btn">Menu</button>
+  </div>
+  <div class="dropdown">
+    <label for="format-select-ltr">Color Format</label>
+    <select id="format-select-ltr">
+      <option value="hex" selected>HEX</option>
+      <option value="rgb">RGB</option>
+      <option value="hsl">HSL</option>
+    </select>
+    <div style="height:1rem;"></div>
+    <label for="radius-select-ltr">Border Radius</label>
+    <select id="radius-select-ltr">
+      <option value="0">none</option>
+      <option value="8" selected>8px</option>
+      <option value="16">16px</option>
+      <option value="24">24px</option>
+      <option value="32">32px</option>
+    </select>
+  </div>
+  <div class="bottom">
+    <div class="square letter">A</div>
+    <div class="labels">
+      <span class="label-name">Contrast Ratio</span>
+      <span class="label-value ratio">--</span>
+    </div>
+  </div>
+</div>
+
+<div
+  class="color-card rtl"
+  id="card-rtl"
+  data-default-hue="260"
+  data-default-sat="93.1"
+  data-default-bright="78.9"
+>
+  <div class="color-area"><div class="active-indicator"></div></div>
+  <input type="range" class="hue-slider" min="0" max="360" />
+  <div class="flex-row">
+    <button class="menu-btn">תפריט</button>
+    <code class="value">#6C00FA</code>
+  </div>
+  <div class="dropdown">
+    <label for="format-select-rtl">פורמט צבע</label>
+    <select id="format-select-rtl">
+      <option value="hex" selected>HEX</option>
+      <option value="rgb">RGB</option>
+      <option value="hsl">HSL</option>
+    </select>
+    <div style="height:1rem;"></div>
+    <label for="radius-select-rtl">רדיוס גבול</label>
+    <select id="radius-select-rtl">
+      <option value="0">ללא</option>
+      <option value="8" selected>8px</option>
+      <option value="16">16px</option>
+      <option value="24">24px</option>
+      <option value="32">32px</option>
+    </select>
+  </div>
+  <div class="bottom right-aligned">
+    <div class="labels">
+      <span class="label-name">יחס ניגודיות</span>
+      <span class="label-value ratio">--</span>
+    </div>
+    <div class="square letter">ל</div>
+  </div>
+</div>
+
+<script>
+// Converts HSB/HSV to RGB
+function hsbToRgb(h, s, b) {
+  h /= 360; s /= 100; b /= 100;
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = b * (1 - s);
+  const q = b * (1 - f * s);
+  const t = b * (1 - (1 - f) * s);
+  const mod = i % 6;
+  const r = [b, q, p, p, t, b][mod];
+  const g = [t, b, b, q, p, p][mod];
+  const bl = [p, p, t, b, b, q][mod];
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(bl * 255)];
+}
+
+// Convert RGB to HEX string
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map(v =>
+    v.toString(16).padStart(2, "0")
+  ).join("").toUpperCase();
+}
+
+// Computes luminance for contrast calculation
+function luminance(r, g, b) {
+  let a = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 :
+      Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+
+// Contrast ratio (simplified)
+function contrast(rgb) {
+  const L = luminance(rgb[0], rgb[1], rgb[2]);
+  return ((L + 0.05) / 0.05).toFixed(2);
+}
+
+// Format float numbers safely to max 2 decimals
+function formatFloat(num) {
+  const n = Number(num);
+  return isNaN(n) ? "0.00" : n.toFixed(2);
+}
+
+document.querySelectorAll('.color-card').forEach(card => {
+  const hueSlider = card.querySelector('.hue-slider');
+  const colorArea = card.querySelector('.color-area');
+  const value = card.querySelector('.value');
+  const ratio = card.querySelector('.ratio');
+  const letter = card.querySelector('.letter');
+  const menuBtn = card.querySelector('.menu-btn');
+  const dropdown = card.querySelector('.dropdown');
+  const formatSelect = card.querySelector('select[id^="format-select"]');
+  const radiusSelect = card.querySelector('select[id^="radius-select"]');
+  const allSelects = [...card.querySelectorAll('select')];
+  const indicator = card.querySelector('.active-indicator');
+  const isRTL = card.classList.contains('rtl');
+
+  // Default H, S, B attributes on the card element
+  let hue = Number(card.getAttribute('data-default-hue')) || 200;
+  let sat = Number(card.getAttribute('data-default-sat')) || 90;
+  let bright = Number(card.getAttribute('data-default-bright')) || 90;
+
+  // Initialize slider position (inverted for RTL)
+  hueSlider.value = isRTL ? (360 - hue) % 360 : hue;
+
+  // Update the UI and computed values
+  function updateDisplay() {
+    const displayHue = isRTL ? (360 - hueSlider.value) % 360 : hueSlider.value;
+    hue = displayHue;
+
+    const [r, g, b] = hsbToRgb(displayHue, sat, bright);
+    ratio.textContent = contrast([r, g, b]);
+    letter.style.background = `rgb(${r},${g},${b})`;
+
+    const radiusVal = radiusSelect.value === "0" ? "0" : radiusSelect.value + "px";
+    [card, colorArea, dropdown, menuBtn, letter, ...allSelects].forEach(el => {
+      el.style.borderRadius = radiusVal;
+    });
+
+    indicator.style.left = `${sat.toFixed(2)}%`;
+    indicator.style.top = `${(100 - bright).toFixed(2)}%`;
+
+    let out;
+    switch (formatSelect.value) {
+      case 'rgb':
+        out = `rgb(${r}, ${g}, ${b})`;
+        break;
+      case 'hsl':
+        out = `hsl(${formatFloat(displayHue)}, ${formatFloat(sat)}%, ${formatFloat(bright)}%)`;
+        break;
+      default: // hex by default
+        out = rgbToHex(r, g, b);
+    }
+    value.textContent = out;
+
+    colorArea.style.background = `linear-gradient(to right, white, hsl(${displayHue}, 100%, 50%)), linear-gradient(to top, black, transparent)`;
+  }
+
+  // Update saturation and brightness from pointer position
+  function updateByPointer(e) {
+    const rect = colorArea.getBoundingClientRect();
+    const relX = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
+    const relY = Math.max(0, Math.min(1 - (e.clientY - rect.top) / rect.height, 1));
+    sat = (isRTL ? 1 - relX : relX) * 100;
+    bright = relY * 100;
+    updateDisplay();
+  }
+  let isDragging = false;
+  colorArea.addEventListener('mousedown', e => {
+    isDragging = true;
+    updateByPointer(e);
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    
+    // Only update if the pointer is inside this card's colorArea
+    // This requires checking if event target or coordinates intersect colorArea bounds
+    // Or simpler: only the card with isDragging true listens here, so this is fine as is
+    updateByPointer(e);
+  });
+
+  [formatSelect, radiusSelect].forEach(el => el.addEventListener('input', updateDisplay));
+
+  hueSlider.addEventListener('input', () => {
+    hue = isRTL ? (360 - hueSlider.value) % 360 : +hueSlider.value;
+    updateDisplay();
+  });
+
+  menuBtn.addEventListener('click', () => {
+    const open = dropdown.classList.toggle('active');
+    menuBtn.classList.toggle('active');
+    menuBtn.textContent = open ? (isRTL ? 'סגור' : 'Close') : (isRTL ? 'תפריט' : 'Menu');
+    if (open) {
+      gsap.fromTo(dropdown, {opacity: 0, scale: 0.85, y: 15}, {opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'power2.out'});
+    } else {
+      gsap.to(dropdown, {opacity: 0, scale: 0.85, y: 15, duration: 0.25, ease: 'power2.in'});
+    }
+  });
+
+  updateDisplay();
+});
+</script>
+
+</body>
+</html>
